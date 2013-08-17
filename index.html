@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+
+  <head>
+
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+      }
+
+      #playground {
+        height: 100%;
+        width:  100%;
+      }
+    </style>
+
+    <script>
+
+      function getCanvas() {
+        return document.getElementById('playground');
+      }
+
+      function getCanvasContext() {
+        return getCanvas().getContext('2d');
+      }
+
+      function randInt(max) {
+        return Math.floor(Math.random() * max);
+      }
+
+      function randIntBetween(n, m) {
+        var range = Math.abs(m - n);
+        var min = n < m ? n : m;
+        return min + Math.floor(Math.random() * range);
+      }
+
+      function randomColorWithAlpha(alpha) {
+        var r = randInt(255);
+        var g = randInt(255);
+        var b = randInt(255);
+        return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+      }
+
+      function colorRGBGrayWithValue(value) {
+        return "rgba(" + value + ", " + value + ", " + value + ", " + 1.0 + ")";
+      }
+
+      (function() {
+        var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+        window.requestAnimationFrame = requestAnimationFrame;
+      })();
+
+      var frameId, intervalId, canvas, context;
+      var startX = startY = 0;
+      var goingUp = true;
+      var MIN_GRAY = 30;
+      var globalBackgroundColor = MIN_GRAY;
+      var framesBeforeReset = 5000;
+      var lastFrame;
+
+      function putOneCurve() {
+        var x = randInt(canvas.width);
+        var y = randInt(canvas.height);
+        var controlX = randIntBetween(startX, x);
+        var controlY = randIntBetween(startY, y);
+        
+        context.strokeStyle = randomColorWithAlpha(0.8);
+
+        context.beginPath();
+        context.moveTo(startX, startY);
+        context.quadraticCurveTo(controlX, controlY, x, y);
+        context.stroke();
+
+        startX = x;
+        startY = y;
+
+        if (frameId < lastFrame) frameId = requestAnimationFrame(putOneCurve);
+        else {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          lastFrame = frameId + framesBeforeReset;
+          frameId = requestAnimationFrame(putOneCurve);
+        }
+      }
+
+      function swapCanvasColor() {
+        canvas.style.backgroundColor = randomColorWithAlpha(1.0);
+      }
+
+      function incrementCanvasColor() {
+        if (goingUp) {
+          globalBackgroundColor++;
+          if (globalBackgroundColor == 256) goingUp = false;
+        } else {
+          globalBackgroundColor--;
+          if (globalBackgroundColor == MIN_GRAY) goingUp = true;
+      }
+        canvas.style.backgroundColor = colorRGBGrayWithValue(globalBackgroundColor);
+      }
+
+      function startAnimation() {
+        canvas = getCanvas();
+        context = getCanvasContext();
+        frameId = requestAnimationFrame(putOneCurve);
+        lastFrame = frameId + framesBeforeReset;
+        incrementCanvasColor();
+        intervalId = setInterval(incrementCanvasColor, 500);
+      }
+
+    </script>
+
+  </head>
+
+  <body onload="startAnimation();">
+
+    <canvas id="playground" width="2000" height="2000"></canvas>
+
+  </body>
+</html>
