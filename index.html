@@ -14,26 +14,33 @@
         height: 100%;
         width:  100%;
       }
+
+      #wizard {
+        position: absolute;
+        top: 0;
+        left: 0;
+        /* background-color: black; */
+        opacity: 0.7;
+      }
+
     </style>
 
     <script>
 
-      function getCanvas() {
-        return document.getElementById('playground');
-      }
+      function getCanvas() { return document.getElementById('playground'); }
 
-      function getCanvasContext() {
-        return getCanvas().getContext('2d');
-      }
+      function getCanvasContext() { return getCanvas().getContext('2d'); }
 
-      function randInt(max) {
-        return Math.floor(Math.random() * max);
-      }
+      function randInt(max) { return Math.floor(Math.random() * max); }
 
       function randIntBetween(n, m) {
         var range = Math.abs(m - n);
         var min = n < m ? n : m;
         return min + Math.floor(Math.random() * range);
+      }
+
+      function mapToRange(x, baseMin, baseMax, targetMin, targetMax) {
+        return ( x / (baseMax - baseMin) * (targetMax - targetMin) ) + targetMin;
       }
 
       function randomColorWithAlpha(alpha) {
@@ -57,8 +64,9 @@
       var startX = startY = 0;
       var goingUp = true;
       var MIN_GRAY = 30;
+      var MAX_GRAY = 255;
       var globalBackgroundColor = MIN_GRAY;
-      var framesBeforeReset = 5000;
+      var FRAMES_BEFORE_RESET = 5000;
       var lastFrame;
 
       function putOneCurve() {
@@ -80,9 +88,11 @@
         if (frameId < lastFrame) frameId = requestAnimationFrame(putOneCurve);
         else {
           context.clearRect(0, 0, canvas.width, canvas.height);
-          lastFrame = frameId + framesBeforeReset;
+          lastFrame = frameId + FRAMES_BEFORE_RESET;
           frameId = requestAnimationFrame(putOneCurve);
         }
+
+        positionTheWizard(frameId);
       }
 
       function swapCanvasColor() {
@@ -92,7 +102,10 @@
       function incrementCanvasColor() {
         if (goingUp) {
           globalBackgroundColor++;
-          if (globalBackgroundColor == 256) goingUp = false;
+          if (globalBackgroundColor == MAX_GRAY) {
+            goingUp = false;
+            rotationDirection *= -1;
+          }
         } else {
           globalBackgroundColor--;
           if (globalBackgroundColor == MIN_GRAY) goingUp = true;
@@ -100,11 +113,44 @@
         canvas.style.backgroundColor = colorRGBGrayWithValue(globalBackgroundColor);
       }
 
+      /* wizardly globals */
+      var wizard;
+      var wizardRadius = 100;
+      var wizardSideLength = 300;
+      var wizardElipseWidth, wizardElipseHeight;
+      var wizardBaseCoordinateX, wizardBaseCoordinateY;
+      var inverseWizardSpeed = 500;
+      var rotationDirection = 1;
+
+      function initializeWizard() {
+        wizard = document.getElementById('wizard');
+        var wizardContext = wizard.getContext('2d');
+        var troll = document.getElementById('troll');
+        wizardContext.drawImage(troll, 0, 0, 300, 300);
+
+        var margin = 180;
+        wizardElipseWidth = document.width / 2 - margin;
+        wizardElipseHeight = document.height / 2 - margin;
+        wizardBaseCoordinateX = document.width / 2 - wizardSideLength / 2;
+        wizardBaseCoordinateY = document.height / 2 - wizardSideLength / 2;
+      }
+
+      function positionTheWizard(currentFrameId) {
+        var t = mapToRange(currentFrameId % inverseWizardSpeed, 0, inverseWizardSpeed, 0, 2*Math.PI);
+        var x = rotationDirection * wizardElipseWidth  * Math.sin(t) + wizardBaseCoordinateX;
+        var y =                     wizardElipseHeight * Math.cos(t) + wizardBaseCoordinateY;
+
+        wizard.style.left = x + "px";
+        wizard.style.top = y + "px";
+      }
+
       function startAnimation() {
         canvas = getCanvas();
+        initializeWizard();
         context = getCanvasContext();
+        context.lineWidth = 1;
         frameId = requestAnimationFrame(putOneCurve);
-        lastFrame = frameId + framesBeforeReset;
+        lastFrame = frameId + FRAMES_BEFORE_RESET;
         incrementCanvasColor();
         intervalId = setInterval(incrementCanvasColor, 500);
       }
@@ -113,9 +159,11 @@
 
   </head>
 
-  <body onload="startAnimation();">
+  <body onload="startAnimation();" onresize="initializeWizard();">
 
     <canvas id="playground" width="2000" height="2000"></canvas>
+    <canvas id="wizard" width="300" height="300"></canvas>
+    <img src="troll.png" id="troll" hidden />
 
   </body>
 </html>
