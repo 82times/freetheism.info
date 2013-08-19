@@ -63,23 +63,26 @@
       var frameId, intervalId, canvas, context;
       var startX = startY = 0;
       var goingUp = true;
-      var MIN_GRAY = 30;
-      var MAX_GRAY = 255;
-      var globalBackgroundColor = MIN_GRAY;
+      var MIN_GRAY = 40;
+      var MAX_GRAY = 250;
+      var globalBackgroundColor = randIntBetween(MIN_GRAY, MAX_GRAY);
       var FRAMES_BEFORE_RESET = 5000;
       var lastFrame;
 
       function putOneCurve() {
         var x = randInt(canvas.width);
         var y = randInt(canvas.height);
-        var controlX = randIntBetween(startX, x);
-        var controlY = randIntBetween(startY, y);
+        var control1X = randIntBetween(startX, x);
+        var control1Y = randIntBetween(startY, y);
+        var control2X = randIntBetween(startX, x);
+        var control2Y = randIntBetween(startY, y);
         
         context.strokeStyle = randomColorWithAlpha(0.8);
 
         context.beginPath();
         context.moveTo(startX, startY);
-        context.quadraticCurveTo(controlX, controlY, x, y);
+        context.quadraticCurveTo(control1X, control2Y, x, y);
+        context.bezierCurveTo(control1X, control1Y, control2X, control2Y, x, y);
         context.stroke();
 
         startX = x;
@@ -92,7 +95,8 @@
           frameId = requestAnimationFrame(putOneCurve);
         }
 
-        positionTheWizard(frameId);
+        wizardTick += wizardInterval;
+        positionTheWizard(wizardTick);
       }
 
       function swapCanvasColor() {
@@ -104,12 +108,19 @@
           globalBackgroundColor++;
           if (globalBackgroundColor == MAX_GRAY) {
             goingUp = false;
-            rotationDirection *= -1;
+            wizardInterval *= -1;
           }
-        } else {
+          } else {
           globalBackgroundColor--;
           if (globalBackgroundColor == MIN_GRAY) goingUp = true;
-      }
+        }
+
+        if (globalBackgroundColor % 32 == 0) {
+          var newInterval = 3 * Math.sin(frameId);
+          if (Math.abs(newInterval) > 4) newInterval /= 4;
+          wizardInterval = newInterval;
+        }
+
         canvas.style.backgroundColor = colorRGBGrayWithValue(globalBackgroundColor);
       }
 
@@ -120,7 +131,8 @@
       var wizardElipseWidth, wizardElipseHeight;
       var wizardBaseCoordinateX, wizardBaseCoordinateY;
       var inverseWizardSpeed = 500;
-      var rotationDirection = 1;
+      var wizardTick = 0;
+      var wizardInterval = 1;
 
       function initializeWizard() {
         wizard = document.getElementById('wizard');
@@ -135,10 +147,10 @@
         wizardBaseCoordinateY = document.height / 2 - wizardSideLength / 2;
       }
 
-      function positionTheWizard(currentFrameId) {
-        var t = mapToRange(currentFrameId % inverseWizardSpeed, 0, inverseWizardSpeed, 0, 2*Math.PI);
-        var x = rotationDirection * wizardElipseWidth  * Math.sin(t) + wizardBaseCoordinateX;
-        var y =                     wizardElipseHeight * Math.cos(t) + wizardBaseCoordinateY;
+      function positionTheWizard(tick) {
+        var t = mapToRange(tick % inverseWizardSpeed, 0, inverseWizardSpeed, 0, 2*Math.PI);
+        var x = wizardElipseWidth  * Math.sin(t) + wizardBaseCoordinateX;
+        var y = wizardElipseHeight * Math.cos(t) + wizardBaseCoordinateY;
 
         wizard.style.left = x + "px";
         wizard.style.top = y + "px";
@@ -148,7 +160,8 @@
         canvas = getCanvas();
         initializeWizard();
         context = getCanvasContext();
-        context.lineWidth = 1;
+        context.lineWidth = 10;
+        context.lineCap = 'round';
         frameId = requestAnimationFrame(putOneCurve);
         lastFrame = frameId + FRAMES_BEFORE_RESET;
         incrementCanvasColor();
